@@ -1,0 +1,5 @@
+ammonium_904 0.060 +/- 0.001
+turbidity_904 0.035 +/- 0.000
+dissolved_oxygen_904 0.017 +/- 0.000
+water_temperature_904 0.011 +/- 0.000
+pH_904 0.011 +/- 0.000
