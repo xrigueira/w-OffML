@@ -30,20 +30,22 @@ def reader(station):
     from sklearn.preprocessing import MinMaxScaler
     scaler = MinMaxScaler()
     data.iloc[:, 1:-1] = scaler.fit_transform(data.iloc[:, 1:-1])
-
+    
     # Convert variable columns to np.ndarray
     X = data.iloc[:, 1:-1].values
     y = data.iloc[:, -1].values
+    
+    # Get number of variables
+    features = X.shape[1]
 
     # Split the data into test and train sets
     from sklearn.model_selection import train_test_split
     X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=0)
 
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, features
 
-def cnn(X_train, X_test, y_train, y_test, num_epochs, tune_lr):
+def cnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
 
-    
     # https://towardsdatascience.com/how-to-use-convolutional-neural-networks-for-time-series-classification-56b1b0a07a57
     # https://www.mlq.ai/time-series-with-tensorflow-cnn/
     # https://www.macnica.co.jp/en/business/ai/blog/142046/
@@ -52,18 +54,17 @@ def cnn(X_train, X_test, y_train, y_test, num_epochs, tune_lr):
     # Set random seed
     tf.random.set_seed(0)
     
-    # Reshape data to satisfy (batch_size, sequence_length, num_features)
-    # X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
-    # X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
-
+    # Reshape data to satisfy (batch_size, sequence_length, num_features):
+    X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
+    X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
+    
     # Define the model
+    # input_sahpe = (samples, time steps in each samples, feautres)
     model = keras.models.Sequential([
-        keras.layers.Conv1D(256, kernel_size=3, strides=1, input_shape=(6, 6), activation='relu'),
-        keras.layers.Conv1D(256, kernel_size=3, activation='relu'),
+        keras.layers.Conv1D(64, kernel_size=1, strides=1, input_shape=(6, 1), activation='relu'),
+        keras.layers.Conv1D(128, kernel_size=1, activation='relu'),
+        keras.layers.Conv1D(256, kernel_size=1, activation='relu'),
         keras.layers.MaxPooling1D(pool_size=2),
-        # keras.layers.Conv1D(128, kernel_size=3, activation='relu'),
-        # keras.layers.Conv1D(128, kernel_size=3, activation='relu'),
-        # keras.layers.MaxPooling1D(pool_size=2),
         keras.layers.Flatten(),
         keras.layers.Dense(256, activation='relu'),
         keras.layers.Dense(128, activation='relu'),
@@ -113,9 +114,9 @@ if __name__ == '__main__':
     
     station = 901
 
-    X_train, X_test, y_train, y_test = reader(station=station)
+    X_train, X_test, y_train, y_test, features = reader(station=station)
     
-    cnn(X_train, X_test, y_train, y_test, num_epochs=50, tune_lr=False)
+    cnn(X_train, X_test, y_train, y_test, features, num_epochs=50, tune_lr=False)
 
     # Implement mini-batching
     
