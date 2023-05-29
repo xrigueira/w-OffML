@@ -1,4 +1,4 @@
-# Deploy a simple CNN for classification and prediction
+# Deploy a simple RNN for classification and prediction
 
 import numpy as np
 import pandas as pd
@@ -6,9 +6,8 @@ import matplotlib.pyplot as plt
 
 import keras
 import tensorflow as tf
-from keras import Sequential
-from keras.layers import Dense, SimpleRNN
 
+# Resources
 # https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/02_neural_network_classification_in_tensorflow.ipynb
 # https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/03_convolutional_neural_networks_in_tensorflow.ipynb
 # https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/10_time_series_forecasting_in_tensorflow.ipynb
@@ -46,20 +45,10 @@ def reader(station):
 
     return X_train, X_test, y_train, y_test, features
 
-def cnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
-
-    # https://towardsdatascience.com/how-to-use-convolutional-neural-networks-for-time-series-classification-56b1b0a07a57
-    # https://www.mlq.ai/time-series-with-tensorflow-cnn/
-    # https://www.macnica.co.jp/en/business/ai/blog/142046/
-    # https://keras.io/examples/timeseries/timeseries_classification_from_scratch/
+def rnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
     
     # Set random seed
     tf.random.set_seed(0)
-    
-    # Reshape data to satisfy (batch_size, sequence_length, num_features):
-    # X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
-    # X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
-    # Assuming you have 6 input variables and a window size of 1
 
     window_size = 1
     n_features = 6
@@ -72,10 +61,11 @@ def cnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
     
     # Define the model
     # input_sahpe = (samples, time steps in each samples, feautres)
-    model = Sequential()
-    model.add(SimpleRNN(units=32, input_shape=(window_size, n_features)))
-    model.add(Dense(64, activation='relu'))
-    model.add(Dense(1, activation='sigmoid'))
+    model = keras.models.Sequential([
+        keras.layers.SimpleRNN(units=32, input_shape=(window_size, n_features)),
+        keras.layers.Dense(64, activation='relu'),
+        keras.layers.Dense(1, activation='sigmoid')
+    ])
 
     # Get model's summary
     model.summary()
@@ -121,8 +111,4 @@ if __name__ == '__main__':
 
     X_train, X_test, y_train, y_test, features = reader(station=station)
     
-    cnn(X_train, X_test, y_train, y_test, features, num_epochs=10, tune_lr=False)
-
-    # Implement mini-batching
-    
-    
+    rnn(X_train, X_test, y_train, y_test, features, num_epochs=10, tune_lr=False)

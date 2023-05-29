@@ -7,6 +7,11 @@ import matplotlib.pyplot as plt
 import keras
 import tensorflow as tf
 
+# Resources
+# https://towardsdatascience.com/how-to-use-convolutional-neural-networks-for-time-series-classification-56b1b0a07a57
+# https://www.mlq.ai/time-series-with-tensorflow-cnn/
+# https://www.macnica.co.jp/en/business/ai/blog/142046/
+# https://keras.io/examples/timeseries/timeseries_classification_from_scratch/
 # https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/02_neural_network_classification_in_tensorflow.ipynb
 # https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/03_convolutional_neural_networks_in_tensorflow.ipynb
 # https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/10_time_series_forecasting_in_tensorflow.ipynb
@@ -44,19 +49,20 @@ def reader(station):
 
     return X_train, X_test, y_train, y_test, features
 
-def cnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
-
-    # https://towardsdatascience.com/how-to-use-convolutional-neural-networks-for-time-series-classification-56b1b0a07a57
-    # https://www.mlq.ai/time-series-with-tensorflow-cnn/
-    # https://www.macnica.co.jp/en/business/ai/blog/142046/
-    # https://keras.io/examples/timeseries/timeseries_classification_from_scratch/
-    
-    # Set random seed
-    tf.random.set_seed(0)
+def windows(X_train, X_test, y_train, y_test):
     
     # Reshape data to satisfy (batch_size, sequence_length, num_features):
     X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
     X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
+
+    return X_train, X_test, y_train, y_test
+
+def cnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
+
+    # TODO: Implement mini-batching
+    
+    # Set random seed
+    tf.random.set_seed(0)
     
     # Define the model
     # input_sahpe = (samples, time steps in each samples, feautres)
@@ -116,8 +122,4 @@ if __name__ == '__main__':
 
     X_train, X_test, y_train, y_test, features = reader(station=station)
     
-    cnn(X_train, X_test, y_train, y_test, features, num_epochs=50, tune_lr=False)
-
-    # Implement mini-batching
-    
-    
+    # cnn(X_train, X_test, y_train, y_test, features, num_epochs=50, tune_lr=False)
