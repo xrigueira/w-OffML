@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 
 import keras
 import tensorflow as tf
+from keras import Sequential
+from keras.layers import Dense, SimpleRNN
 
 # https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/02_neural_network_classification_in_tensorflow.ipynb
 # https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/03_convolutional_neural_networks_in_tensorflow.ipynb
@@ -55,22 +57,25 @@ def cnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
     tf.random.set_seed(0)
     
     # Reshape data to satisfy (batch_size, sequence_length, num_features):
-    X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
-    X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
+    # X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
+    # X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
+    # Assuming you have 6 input variables and a window size of 1
+
+    window_size = 1
+    n_features = 6
+
+    # Reshape the data for the CNN input shape
+    X_train = X_train.reshape(-1, window_size, 6)
+    X_test = X_test.reshape(-1, window_size, 6)
+    y_train = y_train.reshape(-1, window_size, 1)
+    y_test = y_test.reshape(-1, window_size, 1)
     
     # Define the model
     # input_sahpe = (samples, time steps in each samples, feautres)
-    model = keras.models.Sequential([
-        keras.layers.Conv1D(64, kernel_size=1, strides=1, input_shape=(6, 1), activation='relu'),
-        keras.layers.Conv1D(128, kernel_size=1, activation='relu'),
-        keras.layers.Conv1D(256, kernel_size=1, activation='relu'),
-        keras.layers.MaxPooling1D(pool_size=2),
-        keras.layers.Flatten(),
-        keras.layers.Dense(256, activation='relu'),
-        keras.layers.Dense(128, activation='relu'),
-        keras.layers.Dense(64, activation='relu'),
-        keras.layers.Dense(1, activation='sigmoid')
-    ])
+    model = Sequential()
+    model.add(SimpleRNN(units=32, input_shape=(window_size, n_features)))
+    model.add(Dense(64, activation='relu'))
+    model.add(Dense(1, activation='sigmoid'))
 
     # Get model's summary
     model.summary()
@@ -116,7 +121,7 @@ if __name__ == '__main__':
 
     X_train, X_test, y_train, y_test, features = reader(station=station)
     
-    cnn(X_train, X_test, y_train, y_test, features, num_epochs=50, tune_lr=False)
+    cnn(X_train, X_test, y_train, y_test, features, num_epochs=10, tune_lr=False)
 
     # Implement mini-batching
     
