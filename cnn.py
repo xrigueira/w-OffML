@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+import statistics as stats
 import matplotlib.pyplot as plt
 
 import keras
@@ -20,7 +21,7 @@ def reader(station):
     """This method read the data and splits it in training and testing sets.
     ----------
     Arguments:
-    None.
+    station (int): the station number.
 
     Returns:
     X_train: (np.array): variables train set.
@@ -49,15 +50,29 @@ def reader(station):
 
     return X_train, X_test, y_train, y_test, features
 
-def windows(X_train, X_test, y_train, y_test):
+def windows(array, group_size, step_size, data_type):
+    """This method takes an array and generates overlapping windows.
+        ----------
+        Arguments:
+        array (np.array): the array to process.
+        group_size (int): the length of each window.
+        step_size (int): the step used to create the windows.
+        data_type (string): whether it is data or labels.
+
+        Returns:
+        groups (np.array): windowed array."""
+
+    groups = []
+    for i in range(0, array.shape[0] - group_size + 1, step_size):
+        group = array[i:i + group_size]
+        if data_type == 'X':
+            groups.append(group)
+        else:
+            groups.append(sum(group) / len(group))
     
-    # Reshape data to satisfy (batch_size, sequence_length, num_features):
-    X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
-    X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
+    return np.array(groups)
 
-    return X_train, X_test, y_train, y_test
-
-def cnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
+def cnn(X_train, X_test, y_train, y_test, features, group_size, num_epochs, tune_lr):
 
     # TODO: Implement mini-batching
     
@@ -67,7 +82,7 @@ def cnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
     # Define the model
     # input_sahpe = (samples, time steps in each samples, feautres)
     model = keras.models.Sequential([
-        keras.layers.Conv1D(64, kernel_size=1, strides=1, input_shape=(6, 1), activation='relu'),
+        keras.layers.Conv1D(64, kernel_size=1, strides=1, input_shape=(group_size, features), activation='relu'),
         keras.layers.Conv1D(128, kernel_size=1, activation='relu'),
         keras.layers.Conv1D(256, kernel_size=1, activation='relu'),
         keras.layers.MaxPooling1D(pool_size=2),
@@ -75,14 +90,14 @@ def cnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
         keras.layers.Dense(256, activation='relu'),
         keras.layers.Dense(128, activation='relu'),
         keras.layers.Dense(64, activation='relu'),
-        keras.layers.Dense(1, activation='sigmoid')
+        keras.layers.Dense(1, activation='linear')
     ])
 
     # Get model's summary
     model.summary()
 
     # Compile the model
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0035), loss=tf.keras.losses.BinaryCrossentropy(), metrics=['accuracy'])
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0035), loss=tf.keras.losses.MeanSquaredError(), metrics=['mse'])
 
     # Train the model
     if tune_lr == True:
@@ -99,6 +114,7 @@ def cnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
     
     # Perform prediction and get confusion matrix
     y_hat = model.predict(X_test)
+    np.save('y_hat.npy', y_hat)
     print(tf.math.confusion_matrix(y_test, y_hat))
     
     # Plot the loss and accuracy curves
@@ -121,5 +137,12 @@ if __name__ == '__main__':
     station = 901
 
     X_train, X_test, y_train, y_test, features = reader(station=station)
-    
-    # cnn(X_train, X_test, y_train, y_test, features, num_epochs=50, tune_lr=False)
+
+    group_size = 96 
+
+    X_train = windows(array=X_train, group_size=group_size, step_size=1, data_type='X')
+    X_test = windows(array=X_test, group_size=group_size, step_size=1, data_type='X')
+    y_train = windows(array=y_train, group_size=group_size, step_size=1, data_type='y')
+    y_test = windows(array=y_test, group_size=group_size, step_size=1, data_type='y')
+    np.save('y_test.npy', y_test)
+    cnn(X_train, X_test, y_train, y_test, features, group_size=group_size, num_epochs=1, tune_lr=False)
