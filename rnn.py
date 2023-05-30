@@ -53,7 +53,7 @@ def rnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
     window_size = 1
     n_features = 6
 
-    # Reshape the data for the CNN input shape
+    # Reshape the data for the RNN input shape
     X_train = X_train.reshape(-1, window_size, 6)
     X_test = X_test.reshape(-1, window_size, 6)
     y_train = y_train.reshape(-1, window_size, 1)
@@ -62,7 +62,12 @@ def rnn(X_train, X_test, y_train, y_test, features, num_epochs, tune_lr):
     # Define the model
     # input_sahpe = (samples, time steps in each samples, feautres)
     model = keras.models.Sequential([
-        keras.layers.SimpleRNN(units=32, input_shape=(window_size, n_features)),
+        keras.layers.SimpleRNN(units=32, input_shape=(window_size, n_features), return_sequences=True),
+        keras.layers.SimpleRNN(units=64, return_sequences=True),
+        keras.layers.SimpleRNN(units=128, return_sequences=True),
+        keras.layers.SimpleRNN(units=256),
+        keras.layers.Dense(256, activation='relu'),
+        keras.layers.Dense(128, activation='relu'),
         keras.layers.Dense(64, activation='relu'),
         keras.layers.Dense(1, activation='sigmoid')
     ])

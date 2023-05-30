@@ -1,6 +1,6 @@
 import pandas as pd
 
-class batch():
+class Batch():
     
     def __init__(self, station, search) -> None:
         self.station = station
@@ -225,7 +225,7 @@ class batch():
 if __name__ == '__main__':
     
     # Create an instance of the 'batch' class
-    batch_model = batch(station=901, search=False)
+    batch_model = Batch(station=901, search=False)
     
     # Read and split the data
     X_train, y_train, X_test, y_test = batch_model.reader()
