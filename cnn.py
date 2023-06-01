@@ -15,10 +15,11 @@ import tensorflow as tf
 
 class CNN():
     
-    def __init__(self, station, group_size, step_size, num_epochs, tune_lr) -> None:
+    def __init__(self, station, group_size, step_size, learning_rate, num_epochs, tune_lr) -> None:
         self.station = station
         self.group_size = group_size
         self.step_size = step_size
+        self.learning_rate = learning_rate
         self.num_epochs = num_epochs
         self.tune_lr = tune_lr
 
@@ -73,7 +74,7 @@ class CNN():
             if data_type == 'X':
                 groups.append(group)
             else:
-                groups.append(sum(group) / len(group))
+                groups.append((sum(group) / len(group)) * 100)
         
         return np.array(groups)
 
@@ -87,14 +88,23 @@ class CNN():
         # Define the model
         # input_sahpe = (samples, time steps in each samples, feautres)
         model = keras.models.Sequential([
-            keras.layers.Conv1D(64, kernel_size=1, strides=1, input_shape=(self.group_size, features), activation='relu'),
+            keras.layers.Conv1D(32, kernel_size=1, strides=1, input_shape=(self.group_size, features), activation='relu'),
+            keras.layers.Conv1D(64, kernel_size=1, activation='relu'),
             keras.layers.Conv1D(128, kernel_size=1, activation='relu'),
             keras.layers.Conv1D(256, kernel_size=1, activation='relu'),
+            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
+            keras.layers.MaxPooling1D(pool_size=2),
+            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
+            keras.layers.Conv1D(1024, kernel_size=1, activation='relu'),
+            keras.layers.Conv1D(1014, kernel_size=1, activation='relu'),
+            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
             keras.layers.MaxPooling1D(pool_size=2),
             keras.layers.Flatten(),
+            keras.layers.Dense(512, activation='relu'),
             keras.layers.Dense(256, activation='relu'),
             keras.layers.Dense(128, activation='relu'),
             keras.layers.Dense(64, activation='relu'),
+            keras.layers.Dense(32, activation='relu'),
             keras.layers.Dense(1, activation='linear')
         ])
 
@@ -102,7 +112,7 @@ class CNN():
         model.summary()
 
         # Compile the model
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss=tf.keras.losses.MeanSquaredError(), metrics=['mse'])
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate), loss=tf.keras.losses.MeanSquaredError(), metrics=['mse'])
 
         # Train the model
         if self.tune_lr == True:
@@ -115,7 +125,7 @@ class CNN():
 
         # Test the performance
         loss, accuracy = model.evaluate(X_test, y_test)
-        print('Loss: %.2f, Accuracy: %.2f' % (loss*100, accuracy*100))
+        print('Loss: %.2f, Accuracy: %.2f' % (loss, accuracy))
         
         # Perform prediction and get confusion matrix
         y_hat = model.predict(X_test)
@@ -179,8 +189,6 @@ class CNN():
         print('R-squared measure', r2_score_value)
 
         # Plot the labels and the prediction
-        import matplotlib.pyplot as plt
-
         x_values = np.arange(0, len(y_test), 1)
 
         fig, ax = plt.subplots(figsize=(10, 7))
@@ -194,7 +202,7 @@ if __name__ == '__main__':
     station = 901
     
     # Create an instance of the CNN class
-    cnn_model = CNN(station=station, group_size=96, step_size=1, num_epochs=1, tune_lr=False)
+    cnn_model = CNN(station=station, learning_rate=0.001, group_size=96, step_size=1, num_epochs=50, tune_lr=True)
 
     # Read and split the data
     X_train, X_test, y_train, y_test, features = cnn_model.reader()
