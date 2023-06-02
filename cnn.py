@@ -23,6 +23,32 @@ class CNN():
         self.num_epochs = num_epochs
         self.tune_lr = tune_lr
 
+    def custom_train_test_split(self, X, y, train_size):
+        """This function split the data at the 'train size' length. The test set 
+        would be all items which index is smaller then this number, while the test 
+        size all those items with an index above.
+        ----------
+        Arguments:
+        X (np.array): predictor variables.
+        y (np.array): labels or target variable.
+        train_size (float): defines the size of the train and test sets.
+        
+        Return:
+        X_train: (np.array): variables train set.
+        X_test: (np.array): variables test set.
+        y_train: (np.array): target train set.
+        y_test: (np.array): target test set."""
+
+        # Define train sets
+        X_train = X[:int(train_size*len(X))]
+        y_train = y[:int(train_size*len(y))]
+
+        # Define test sets
+        X_test = X[int(train_size*len(X)):]
+        y_test = y[int(train_size*len(y)):]
+
+        return X_train, X_test, y_train, y_test
+
     def reader(self):
         """This method read the data and splits it in training and testing sets.
         ----------
@@ -52,7 +78,7 @@ class CNN():
 
         # Split the data into test and train sets
         from sklearn.model_selection import train_test_split
-        X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=0)
+        X_train, X_test, y_train, y_test = self.custom_train_test_split(X, y, train_size=0.8)
 
         return X_train, X_test, y_train, y_test, features
 
@@ -91,17 +117,8 @@ class CNN():
             keras.layers.Conv1D(32, kernel_size=1, strides=1, input_shape=(self.group_size, features), activation='relu'),
             keras.layers.Conv1D(64, kernel_size=1, activation='relu'),
             keras.layers.Conv1D(128, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(256, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
-            keras.layers.MaxPooling1D(pool_size=2),
-            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(1024, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(1014, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
             keras.layers.MaxPooling1D(pool_size=2),
             keras.layers.Flatten(),
-            keras.layers.Dense(512, activation='relu'),
-            keras.layers.Dense(256, activation='relu'),
             keras.layers.Dense(128, activation='relu'),
             keras.layers.Dense(64, activation='relu'),
             keras.layers.Dense(32, activation='relu'),
@@ -130,7 +147,7 @@ class CNN():
         # Perform prediction and get confusion matrix
         y_hat = model.predict(X_test)
         np.save('y_hat.npy', y_hat)
-        print(tf.math.confusion_matrix(y_test, y_hat))
+        # print(tf.math.confusion_matrix(y_test, y_hat))
         
         # Plot the loss and accuracy curves
         pd.DataFrame(history.history).plot(figsize=(10, 7))
@@ -169,51 +186,40 @@ class CNN():
 
         # Find the indices of non-zero values in y_test
         nonzero_indices = np.nonzero(y_test)[0]
-
-        # Compute the distance between non-zero values of y_test and the corresponding y_hat values
-        ## Use absolute difference
-        distance_abs = np.abs(y_test[nonzero_indices] - y_hat[nonzero_indices])
-        print('Average absolute distance', np.mean(distance_abs))
-
-        ## Use Euclidean distance
-        distance_Euclid = np.linalg.norm(y_test[nonzero_indices] - y_hat[nonzero_indices])
-        print('Average Euclidean distance', np.mean(distance_Euclid))
         
         # Compute the R-squared metric
         from sklearn.metrics import r2_score
         r2_score_value = r2_score(y_test, y_hat)
         print('Global R-squared measure', r2_score_value)
 
-        # Compute the R-squared metric with non-zero values of y_test and the corresponding y_hat values
-        r2_score_value = r2_score(y_test[nonzero_indices], y_hat[nonzero_indices])
-        print('R-squared measure', r2_score_value)
-
         # Plot the labels and the prediction
-        x_values = np.arange(0, len(y_test), 1)
-
         fig, ax = plt.subplots(figsize=(10, 7))
-        ax.plot(y_test[nonzero_indices])
-        ax.plot(y_hat[nonzero_indices])
-
+        ax.plot(y_test, label='test')
+        ax.plot(y_hat, label='prediction')
+        # ax.plot(y_test[nonzero_indices])
+        # ax.plot(y_hat[nonzero_indices])
+        plt.legend()
         plt.show()
 
 if __name__ == '__main__':
     
-    station = 901
+    station = 916
+    group_size = 96
     
     # Create an instance of the CNN class
-    cnn_model = CNN(station=station, learning_rate=0.001, group_size=96, step_size=1, num_epochs=50, tune_lr=True)
+    cnn_model = CNN(station=station, group_size=group_size, step_size=1, learning_rate=0.001, num_epochs=16, tune_lr=False)
 
     # Read and split the data
     X_train, X_test, y_train, y_test, features = cnn_model.reader()
 
     # Preprocess the data to group in overlapping windows
-    group_size = 96 
     X_train = cnn_model.windows(array=X_train, data_type='X')
     X_test = cnn_model.windows(array=X_test, data_type='X')
     y_train = cnn_model.windows(array=y_train, data_type='y')
     y_test = cnn_model.windows(array=y_test, data_type='y')
-    np.save('y_test.npy', y_test) # Save the test dataset for further processing
+    # Save the windowed labebls for further processing
+    np.save('y_train.npy', y_train)
+    np.save('y_test.npy', y_test)
     
     y_hat = cnn_model.cnn(X_train, X_test, y_train, y_test, features)
     
