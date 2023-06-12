@@ -117,8 +117,17 @@ class CNN():
             keras.layers.Conv1D(32, kernel_size=1, strides=1, input_shape=(self.group_size, features), activation='relu'),
             keras.layers.Conv1D(64, kernel_size=1, activation='relu'),
             keras.layers.Conv1D(128, kernel_size=1, activation='relu'),
+            keras.layers.Conv1D(256, kernel_size=1, activation='relu'),
+            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
+            keras.layers.MaxPooling1D(pool_size=2),
+            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
+            keras.layers.Conv1D(1024, kernel_size=1, activation='relu'),
+            keras.layers.Conv1D(1014, kernel_size=1, activation='relu'),
+            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
             keras.layers.MaxPooling1D(pool_size=2),
             keras.layers.Flatten(),
+            keras.layers.Dense(512, activation='relu'),
+            keras.layers.Dense(256, activation='relu'),
             keras.layers.Dense(128, activation='relu'),
             keras.layers.Dense(64, activation='relu'),
             keras.layers.Dense(32, activation='relu'),
@@ -207,7 +216,7 @@ if __name__ == '__main__':
     group_size = 96
     
     # Create an instance of the CNN class
-    cnn_model = CNN(station=station, group_size=group_size, step_size=1, learning_rate=0.001, num_epochs=16, tune_lr=False)
+    cnn_model = CNN(station=station, group_size=group_size, step_size=1, learning_rate=0.00025, num_epochs=16, tune_lr=False)
 
     # Read and split the data
     X_train, X_test, y_train, y_test, features = cnn_model.reader()
