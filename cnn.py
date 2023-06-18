@@ -50,7 +50,7 @@ class CNN():
         return X_train, X_test, y_train, y_test
 
     def reader(self):
-        """This method read the data and splits it in training and testing sets.
+        """This method reads the data and splits it in training and testing sets.
         ----------
         Arguments:
         station (int): the station number.
@@ -100,7 +100,12 @@ class CNN():
             if data_type == 'X':
                 groups.append(group)
             else:
-                groups.append((sum(group) / len(group)) * 100)
+                label = sum(group) / len(group)
+                if label >= 0.5:
+                    label = 1
+                else:
+                    label = 0
+                groups.append(label)
         
         return np.array(groups)
 
@@ -116,19 +121,19 @@ class CNN():
         model = keras.models.Sequential([
             keras.layers.Conv1D(32, kernel_size=1, strides=1, input_shape=(self.group_size, features), activation='relu'),
             keras.layers.Conv1D(64, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(128, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(256, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
+            # keras.layers.Conv1D(128, kernel_size=1, activation='relu'),
+            # keras.layers.Conv1D(256, kernel_size=1, activation='relu'),
+            # keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
             keras.layers.MaxPooling1D(pool_size=2),
-            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(1024, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(1014, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
-            keras.layers.MaxPooling1D(pool_size=2),
+            # keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
+            # keras.layers.Conv1D(1024, kernel_size=1, activation='relu'),
+            # keras.layers.Conv1D(1014, kernel_size=1, activation='relu'),
+            # keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
+            # keras.layers.MaxPooling1D(pool_size=2),
             keras.layers.Flatten(),
-            keras.layers.Dense(512, activation='relu'),
-            keras.layers.Dense(256, activation='relu'),
-            keras.layers.Dense(128, activation='relu'),
+            # keras.layers.Dense(512, activation='relu'),
+            # keras.layers.Dense(256, activation='relu'),
+            # keras.layers.Dense(128, activation='relu'),
             keras.layers.Dense(64, activation='relu'),
             keras.layers.Dense(32, activation='relu'),
             keras.layers.Dense(1, activation='linear')
@@ -150,8 +155,8 @@ class CNN():
             history = model.fit(X_train, y_train, epochs=self.num_epochs, batch_size=32)
 
         # Test the performance
-        loss, accuracy = model.evaluate(X_test, y_test)
-        print('Loss: %.2f, Accuracy: %.2f' % (loss, accuracy))
+        loss, metric = model.evaluate(X_test, y_test)
+        print('Loss: %.2f, Metric: %.2f' % (loss, metric))
         
         # Perform prediction and get confusion matrix
         y_hat = model.predict(X_test)
@@ -213,10 +218,10 @@ class CNN():
 if __name__ == '__main__':
     
     station = 916
-    group_size = 96
+    group_size = 32
     
     # Create an instance of the CNN class
-    cnn_model = CNN(station=station, group_size=group_size, step_size=1, learning_rate=0.00025, num_epochs=16, tune_lr=False)
+    cnn_model = CNN(station=station, group_size=group_size, step_size=1, learning_rate=0.001, num_epochs=16, tune_lr=False)
 
     # Read and split the data
     X_train, X_test, y_train, y_test, features = cnn_model.reader()
