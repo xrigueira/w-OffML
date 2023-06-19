@@ -4,14 +4,10 @@ import numpy as np
 import pandas as pd
 import statistics as stats
 import matplotlib.pyplot as plt
+colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 import keras
 import tensorflow as tf
-
-# Resources
-# https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/02_neural_network_classification_in_tensorflow.ipynb
-# https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/03_convolutional_neural_networks_in_tensorflow.ipynb
-# https://github.com/mrdbourke/tensorflow-deep-learning/blob/main/10_time_series_forecasting_in_tensorflow.ipynb
 
 class CNN():
     
@@ -108,10 +104,41 @@ class CNN():
                 groups.append(label)
         
         return np.array(groups)
+    
+    def class_weights(self, array):
+        
+        neg = np.count_nonzero(array==0)
+        pos = np.count_nonzero(array==1)
+        total = neg + pos
+        
+        weight_for_0 = (1 / neg) * (total / 2)
+        weight_for_1 = (1 / pos) * (total / 2)
+        
+        class_weight = {0: weight_for_0, 1: weight_for_1}
+        
+        return class_weight
+    
+    def plot_metrics(self, history):
+        
+        metrics = ['loss', 'prc', 'precision', 'recall']
+        
+        for n, metric in enumerate(metrics):
+            name = metric.replace("_"," ").capitalize()
+            plt.subplot(2,2,n+1)
+            plt.plot(history.epoch, history.history[metric], color=colors[0], label='Train')
+            plt.plot(history.epoch, history.history['val_'+metric],
+                    color=colors[0], linestyle="--", label='Val')
+            plt.xlabel('Epoch')
+            plt.ylabel(name)
+            if metric == 'loss':
+                plt.ylim([0, plt.ylim()[1]])
+            elif metric == 'auc':
+                plt.ylim([0.8,1])
+            else:
+                plt.ylim([0,1])
 
-    def cnn(self, X_train, X_test, y_train, y_test, features):
-
-        # TODO: Implement mini-batching
+    plt.legend()
+    def cnn(self, X_train, X_test, y_train, y_test, features, class_weight):
         
         # Set random seed
         tf.random.set_seed(0)
@@ -136,32 +163,48 @@ class CNN():
             # keras.layers.Dense(128, activation='relu'),
             keras.layers.Dense(64, activation='relu'),
             keras.layers.Dense(32, activation='relu'),
-            keras.layers.Dense(1, activation='linear')
+            keras.layers.Dense(1, activation='sigmoid')
         ])
-
+        
         # Get model's summary
         model.summary()
+        
+        # Define metrics
+        metrics = [
+            keras.metrics.TruePositives(name='tp'),
+            keras.metrics.FalsePositives(name='fp'),
+            keras.metrics.TrueNegatives(name='tn'),
+            keras.metrics.FalseNegatives(name='fn'), 
+            keras.metrics.BinaryAccuracy(name='accuracy'),
+            keras.metrics.Precision(name='precision'),
+            keras.metrics.Recall(name='recall'),
+            keras.metrics.AUC(name='auc'),
+            keras.metrics.AUC(name='prc', curve='PR'), # precision-recall curve
+        ]
 
         # Compile the model
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate), loss=tf.keras.losses.MeanSquaredError(), metrics=['mse'])
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate), loss=keras.losses.BinaryCrossentropy(), metrics=metrics)
 
         # Train the model
         if self.tune_lr == True:
             print("Tunning learning rate")
             # Create a learning rate scheduler callback
             lr_scheduler = tf.keras.callbacks.LearningRateScheduler(lambda epoch: 1e-4 * 10**(epoch / 20))
-            history = model.fit(X_train, y_train, epochs=self.num_epochs, batch_size=32, callbacks=[lr_scheduler])
+            history = model.fit(X_train, y_train, epochs=self.num_epochs, batch_size=32, callbacks=[lr_scheduler], verbose=0)
         else:
-            history = model.fit(X_train, y_train, epochs=self.num_epochs, batch_size=32)
+            history = model.fit(X_train, y_train, epochs=self.num_epochs, batch_size=32, class_weight=class_weight, verbose=0)
 
         # Test the performance
-        loss, metric = model.evaluate(X_test, y_test)
-        print('Loss: %.2f, Metric: %.2f' % (loss, metric))
+        results = model.evaluate(X_test, y_test, verbose=1)
+        for name, value in zip(model.metrics_names, results):
+            print(name, ': ', value)
+        print()
+        
+        # Plot metrics
+        # self.plot_metrics(model)
         
         # Perform prediction and get confusion matrix
         y_hat = model.predict(X_test)
-        np.save('y_hat.npy', y_hat)
-        # print(tf.math.confusion_matrix(y_test, y_hat))
         
         # Plot the loss and accuracy curves
         pd.DataFrame(history.history).plot(figsize=(10, 7))
@@ -194,10 +237,6 @@ class CNN():
         distance_abs = np.abs(y_test - y_hat)
         print('Average global absolute distance', np.mean(distance_abs))
 
-        ## Use Euclidean distance
-        distance_Euclid = np.linalg.norm(y_test - y_hat)
-        print('Average global Euclidean distance', np.mean(distance_Euclid))
-
         # Find the indices of non-zero values in y_test
         nonzero_indices = np.nonzero(y_test)[0]
         
@@ -217,11 +256,11 @@ class CNN():
 
 if __name__ == '__main__':
     
-    station = 916
+    station = 901
     group_size = 32
     
     # Create an instance of the CNN class
-    cnn_model = CNN(station=station, group_size=group_size, step_size=1, learning_rate=0.001, num_epochs=16, tune_lr=False)
+    cnn_model = CNN(station=station, group_size=group_size, step_size=1, learning_rate=0.001, num_epochs=100, tune_lr=False)
 
     # Read and split the data
     X_train, X_test, y_train, y_test, features = cnn_model.reader()
@@ -231,10 +270,10 @@ if __name__ == '__main__':
     X_test = cnn_model.windows(array=X_test, data_type='X')
     y_train = cnn_model.windows(array=y_train, data_type='y')
     y_test = cnn_model.windows(array=y_test, data_type='y')
-    # Save the windowed labebls for further processing
-    np.save('y_train.npy', y_train)
-    np.save('y_test.npy', y_test)
     
-    y_hat = cnn_model.cnn(X_train, X_test, y_train, y_test, features)
+    # Calculate the class weights
+    class_weight = cnn_model.class_weights(y_train)
+    
+    y_hat = cnn_model.cnn(X_train, X_test, y_train, y_test, features, class_weight)
     
     cnn_model.custom_metric(y_test, y_hat)
