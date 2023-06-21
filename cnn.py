@@ -91,10 +91,12 @@ class CNN():
         station (int): the station number.
 
         Returns:
-        X_train: (np.array): variables train set.
-        X_test: (np.array): variables test set.
-        y_train: (np.array): target train set.
-        y_test: (np.array): target test set."""
+        X_train (np.array): variables train set.
+        X_test (np.array): variables test set.
+        X_val
+        y_train (np.array): target train set.
+        y_val (np.array)
+        y_test (np.array): target test set."""
         
         # Read the database
         imbalanced_data = pd.read_csv(f'data/labeled_{self.station}.csv', sep=',', encoding='utf-8', parse_dates=['date'])
@@ -220,15 +222,15 @@ class CNN():
             keras.layers.Conv1D(64, kernel_size=1, activation='relu'),
             keras.layers.Conv1D(128, kernel_size=1, activation='relu'),
             keras.layers.Conv1D(256, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
+            # keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
             keras.layers.MaxPooling1D(pool_size=2),
-            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(1024, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(1014, kernel_size=1, activation='relu'),
-            keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
-            keras.layers.MaxPooling1D(pool_size=2),
+            # keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
+            # keras.layers.Conv1D(1024, kernel_size=1, activation='relu'),
+            # keras.layers.Conv1D(1014, kernel_size=1, activation='relu'),
+            # keras.layers.Conv1D(512, kernel_size=1, activation='relu'),
+            # keras.layers.MaxPooling1D(pool_size=2),
             keras.layers.Flatten(),
-            keras.layers.Dense(512, activation='relu'),
+            # keras.layers.Dense(512, activation='relu'),
             keras.layers.Dense(256, activation='relu'),
             keras.layers.Dense(128, activation='relu'),
             keras.layers.Dense(64, activation='relu'),
@@ -260,7 +262,7 @@ class CNN():
             lr_scheduler = tf.keras.callbacks.LearningRateScheduler(lambda epoch: 1e-4 * 10 ** (epoch / 20)) # Create a learning rate scheduler callback
             history = model.fit(X_train, y_train, epochs=self.num_epochs, batch_size=32, validation_data=(X_val, y_val), callbacks=[lr_scheduler], verbose=0)
         else:
-            history = model.fit(X_train, y_train, epochs=self.num_epochs, batch_size=32, validation_data=(X_val, y_val), verbose=0)
+            history = model.fit(X_train, y_train, epochs=self.num_epochs, batch_size=32, validation_data=(X_val, y_val), class_weight=class_weight, verbose=0)
 
         # Test the performance
         results = model.evaluate(X_test, y_test, verbose=1)
@@ -318,11 +320,11 @@ class CNN():
 
 if __name__ == '__main__':
     
-    station = 901
-    group_size = 32
+    station = 904
+    group_size = 96
     
     # Create an instance of the CNN class
-    cnn_model = CNN(station=station, group_size=group_size, step_size=1, learning_rate=0.0004, num_epochs=50, tune_lr=False)
+    cnn_model = CNN(station=station, group_size=group_size, step_size=1, learning_rate=0.0007, num_epochs=5, tune_lr=False)
 
     # Read and split the data
     X_train, X_val, X_test, y_train, y_val, y_test, features = cnn_model.balanced_reader(dilation_factor=5)

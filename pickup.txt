@@ -1,0 +1,25 @@
+I have stopped this project where I was trying to see
+what CNN architecture could provide good results. The batch part
+is done, RF has the best results.
+
+A group size of 96 looks like the best.
+
+The lr can be tuned setting its option to true and increasing the 
+number of epochs to 50
+
+The option class weights is not in use right now
+
+Here are some resources: https://www.tensorflow.org/tutorials/structured_data/imbalanced_data
+where I got the idea for the plots, the class weights. I am also rebalancing the data so it has
+5 times more zeros than ones, which is a much better ratio compared to the original data.
+
+There are three stations with really big anomalies (more than six months) which may not be
+the best for testing. These are 905, 907 and 916. I think the best for testing are 901, 904, 906,
+and 910. 902 has very few anomalies.
+
+The custom metric right now is just plotting to see if the precitions (y_hat) match the test set.
+Custom metrics can be defined in tensorflow, look up and see how to do it.
+
+Lastly, rnn.py contains a basic and not-up-to-date with cnn.py implementation of a LSTM, which I
+also have to test. It is not up-to-date because it does not have the methods to rebalance the data
+implemented for example.
