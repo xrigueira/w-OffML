@@ -29,11 +29,13 @@ class CNN():
         y (np.array): labels or target variable.
         train_size (float): defines the size of the train and test sets.
         
-        Return:
-        X_train: (np.array): variables train set.
-        X_test: (np.array): variables test set.
-        y_train: (np.array): target train set.
-        y_test: (np.array): target test set."""
+        Returns:
+        X_train (np.array): variables train set.
+        X_val (np.array): variables validation set.
+        X_test (np.array): variables test set.
+        y_train (np.array): target train set.
+        y_val (np.array): variables validation set.
+        y_test (np.array): target test set."""
 
         # Define train sets
         X_train = X[:int(train_size*len(X))]
@@ -50,16 +52,19 @@ class CNN():
         return X_train, X_val, X_test, y_train, y_val, y_test
 
     def reader(self):
-        """This method reads the data and splits it in training and testing sets.
+        """This method reads the data and splits it in training, validation
+        and testing sets.
         ----------
         Arguments:
         station (int): the station number.
 
         Returns:
-        X_train: (np.array): variables train set.
-        X_test: (np.array): variables test set.
-        y_train: (np.array): target train set.
-        y_test: (np.array): target test set."""
+        X_train (np.array): variables train set.
+        X_val (np.array): variables validation set.
+        X_test (np.array): variables test set.
+        y_train (np.array): target train set.
+        y_val (np.array): variables validation set.
+        y_test (np.array): target test set."""
 
         # Read the data
         data = pd.read_csv(f'data/labeled_{self.station}_cle.csv', sep=',', encoding='utf-8')
@@ -85,17 +90,18 @@ class CNN():
     def balanced_reader(self, dilation_factor):
         """This function balances the data by keeping all the instances
         labeled as one as those who come before and after half of the length
-        of each anomaly.
+        of each anomaly. Then, splits the data in training, validation and
+        test sets.
         ----------
         Arguments:
         station (int): the station number.
 
         Returns:
         X_train (np.array): variables train set.
+        X_val (np.array): variables validation set.
         X_test (np.array): variables test set.
-        X_val
         y_train (np.array): target train set.
-        y_val (np.array)
+        y_val (np.array): variables validation set.
         y_test (np.array): target test set."""
         
         # Read the database
@@ -178,6 +184,15 @@ class CNN():
         return np.array(groups)
     
     def class_weights(self, array):
+        """This method calculates the weights of each label in order
+        to assign a higher importance to the positive (1) labels.
+        ----------
+        Arguments:
+        array (np.array): the array with the labels.
+        
+        Returns:
+        class_weight (dict): contains the weights of each label.
+        """
         
         neg = np.count_nonzero(array==0)
         pos = np.count_nonzero(array==1)
@@ -191,6 +206,14 @@ class CNN():
         return class_weight
     
     def plot_metrics(self, history):
+        """Method to plot several metrics.
+        ----------
+        Arguments:
+        history (tf object): contains the results of the training process.
+        
+        Returns:
+        None.
+        """
         
         metrics = ['loss', 'accuracy', 'precision', 'recall', 'auc', 'prc']
         
@@ -211,6 +234,22 @@ class CNN():
             plt.legend()
     
     def cnn(self, X_train, X_val, X_test, y_train, y_val, y_test, features, class_weight):
+        
+        """Main method with the convolutional neural network.
+        ----------
+        Arguments:
+        X_train (np.array): variables train set.
+        X_val (np.array): variables validation set.
+        X_test (np.array): variables test set.
+        y_train (np.array): target train set.
+        y_val (np.array): variables validation set.
+        y_test (np.array): target test set.
+        features (int): number of features in the data.
+        class_weight (dict): contains the weights of each label.
+        
+        Returns:
+        y_hat (np.array): prediction results.
+        """
         
         # Set random seed
         tf.random.set_seed(0)
@@ -291,7 +330,15 @@ class CNN():
         """This custom metric attempts to compare the prediction
         when the labels are only non-zero. This is interesting
         because of the imabalanced nature of the data with far
-        more zeros than non-zero labels."""
+        more zeros than non-zero labels.
+        ----------
+        Arguments:
+        y_test (np.array): target test set.
+        y_hat (np.array): prediction results.
+        
+        Returns:
+        None.
+        """
         
         # Flatten y_hat
         y_hat = y_hat.flatten()
