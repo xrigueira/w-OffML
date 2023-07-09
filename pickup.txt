@@ -23,3 +23,7 @@ Custom metrics can be defined in tensorflow, look up and see how to do it.
 Lastly, rnn.py contains a basic and not-up-to-date with cnn.py implementation of a LSTM, which I
 also have to test. It is not up-to-date because it does not have the methods to rebalance the data
 implemented for example.
+
+IDEA: so far I am using just one filter. I could try to use several filters. One to detect when
+a variable goes up or down fastly (just like a filter to detect vertical edges (look up)), and some
+other filters I may come up with.
